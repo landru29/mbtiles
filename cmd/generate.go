@@ -24,7 +24,7 @@ func processCommand(databaseFilename *string) *cobra.Command {
 				33, // ColMax
 			)
 
-			database, err := database.New(*databaseFilename)
+			database, err := database.New(cmd.Context(), *databaseFilename)
 			if err != nil {
 				return err
 			}
@@ -37,7 +37,7 @@ func processCommand(databaseFilename *string) *cobra.Command {
 				if err := currentBox.Loop(context.Background(), oaci.Client{}, func(img image.Image, zoomLevel uint64, col uint64, row uint64) error {
 					fmt.Printf("zoom:%d - row: %d - col: %d (%d, %d)\n", zoomLevel, row, col, img.Bounds().Max.X, img.Bounds().Max.Y)
 
-					return database.InsertTile(img, zoomLevel, col, row)
+					return database.InsertTile(cmd.Context(), img, zoomLevel, col, row)
 				}); err != nil {
 					return err
 				}

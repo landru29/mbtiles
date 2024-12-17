@@ -11,7 +11,7 @@ func metadataCommand(databaseFilename *string) *cobra.Command {
 		Use:   "metadata",
 		Short: "manage metadata on MbTiles",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.New(*databaseFilename)
+			db, err := database.New(cmd.Context(), *databaseFilename)
 			if err != nil {
 				return err
 			}
@@ -20,7 +20,7 @@ func metadataCommand(databaseFilename *string) *cobra.Command {
 				_ = db.Close()
 			}()
 
-			metadata, err := db.Metadata()
+			metadata, err := db.Metadata(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -45,7 +45,7 @@ func metadataRewriteCommand(databaseFilename *string) *cobra.Command {
 		Use:   "rewrite",
 		Short: "rewrite metadata on MbTiles",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.New(*databaseFilename)
+			db, err := database.New(cmd.Context(), *databaseFilename)
 			if err != nil {
 				return err
 			}
@@ -54,7 +54,7 @@ func metadataRewriteCommand(databaseFilename *string) *cobra.Command {
 				_ = db.Close()
 			}()
 
-			if err := db.MetadataRewrite(); err != nil {
+			if err := db.MetadataRewrite(cmd.Context()); err != nil {
 				return err
 			}
 

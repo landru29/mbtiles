@@ -12,7 +12,7 @@ func tileCommand(databaseFilename *string) *cobra.Command {
 		Use:   "tile",
 		Short: "manage tiles on MbTiles",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.New(*databaseFilename)
+			db, err := database.New(cmd.Context(), *databaseFilename)
 			if err != nil {
 				return err
 			}
@@ -21,7 +21,7 @@ func tileCommand(databaseFilename *string) *cobra.Command {
 				_ = db.Close()
 			}()
 
-			count, err := db.TilesCount()
+			count, err := db.TilesCount(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -34,6 +34,7 @@ func tileCommand(databaseFilename *string) *cobra.Command {
 
 	output.AddCommand(
 		tileGetCommand(databaseFilename),
+		tileRewriteCommand(databaseFilename),
 	)
 
 	return output
@@ -50,7 +51,7 @@ func tileGetCommand(databaseFilename *string) *cobra.Command {
 		Use:   "get",
 		Short: "get tile from MbTiles",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.New(*databaseFilename)
+			db, err := database.New(cmd.Context(), *databaseFilename)
 			if err != nil {
 				return err
 			}
@@ -63,13 +64,13 @@ func tileGetCommand(databaseFilename *string) *cobra.Command {
 
 			switch {
 			case index > 0:
-				tile, err = db.Tile(index)
+				tile, err = db.Tile(cmd.Context(), index)
 				if err != nil {
 					return err
 				}
 
 			case col > 0 && row > 0:
-				tile, err = db.TileByCoordinate(col, row)
+				tile, err = db.TileByCoordinate(cmd.Context(), col, row)
 				if err != nil {
 					return err
 				}
@@ -93,9 +94,33 @@ func tileGetCommand(databaseFilename *string) *cobra.Command {
 	output.Flags().IntVarP(&col, "col", "c", -1, "tile column in database")
 	output.Flags().IntVarP(&row, "row", "r", -1, "tile row in database")
 
-	output.AddCommand(
-		metadataRewriteCommand(databaseFilename),
-	)
+	return output
+}
+
+func tileRewriteCommand(databaseFilename *string) *cobra.Command {
+	output := &cobra.Command{
+		Use:   "rewrite",
+		Short: "rewrite tile (PNG) to MbTiles",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			db, err := database.New(cmd.Context(), *databaseFilename)
+			if err != nil {
+				return err
+			}
+
+			defer func() {
+				_ = db.Close()
+			}()
+
+			allTiles, err := db.AllTiles(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			cmd.Printf("Rewriting %d tiles\n", len(allTiles))
+
+			return db.TileToPNG(cmd.Context(), cmd.OutOrStdout(), allTiles)
+		},
+	}
 
 	return output
 }
