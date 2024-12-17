@@ -1,0 +1,56 @@
+{
+    // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+    // Pointez pour afficher la description des attributs existants.
+    // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Generate",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd",
+            "args": [
+                "generate",
+                "-d", "${workspaceFolder}/oaci.mbtiles"
+            ]
+        },
+        {
+            "name": "Metadata",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd",
+            "args": [
+                "metadata",
+                "-d", "${workspaceFolder}/oaci.mbtiles"
+            ]
+        },
+        {
+            "name": "Tiles",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd",
+            "args": [
+                "tile",
+                "-d", "${workspaceFolder}/oaci.mbtiles"
+            ]
+        },
+        {
+            "name": "Tile Get",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd",
+            "args": [
+                "tile",
+                "get",
+                "-d", "${workspaceFolder}/oaci.mbtiles",
+                "-r", "22",
+                "-c", "31"
+                //"-i", "5"
+            ]
+        }
+    ]
+}
