@@ -23,7 +23,7 @@
             "program": "${workspaceFolder}/cmd",
             "args": [
                 "metadata",
-                "-d", "${workspaceFolder}/oaci.mbtiles"
+                "-d", "${workspaceFolder}/SIA France 02_2024.mbtiles"
             ]
         },
         {
@@ -46,7 +46,7 @@
             "args": [
                 "tile",
                 "get",
-                "-d", "${workspaceFolder}/oaci.mbtiles",
+                "-d", "${workspaceFolder}/SIA France 02_2024.mbtiles",
                 "-r", "22",
                 "-c", "31"
                 //"-i", "5"

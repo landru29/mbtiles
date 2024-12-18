@@ -54,8 +54,7 @@ func New(ctx context.Context, databaseName string) (*Connection, error) {
 			return nil, err
 		}
 
-		sqliteDatabase, err := sql.Open("sqlite3", databaseName)
-		if err != nil {
+		if err := conn.Open(); err != nil {
 			return nil, err
 		}
 
@@ -65,7 +64,7 @@ func New(ctx context.Context, databaseName string) (*Connection, error) {
 			`CREATE UNIQUE INDEX tile_index on tiles (zoom_level, tile_column, tile_row);`,
 			`CREATE TABLE android_metadata (locale TEXT);`,
 		} {
-			statement, err := sqliteDatabase.Prepare(query)
+			statement, err := conn.db.Prepare(query)
 			if err != nil {
 				return nil, err
 			}

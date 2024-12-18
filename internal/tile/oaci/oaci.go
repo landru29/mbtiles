@@ -6,6 +6,7 @@ import (
 	"image/jpeg"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 
 	pkgerrors "github.com/pkg/errors"
@@ -53,6 +54,10 @@ func (c Client) LoadImage(ctx context.Context, zoomLevel uint64, col uint64, row
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+
+	if resp.StatusCode/100 != 2 {
+		return nil, os.ErrNotExist
+	}
 
 	img, err := jpeg.Decode(resp.Body)
 	if err != nil {

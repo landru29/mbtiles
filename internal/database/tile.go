@@ -85,10 +85,10 @@ func (c Connection) Tile(ctx context.Context, index int) (*TileSample, error) {
 	return &output, err
 }
 
-func (c Connection) TileByCoordinate(ctx context.Context, col int, row int) (*TileSample, error) {
+func (c Connection) TileByCoordinate(ctx context.Context, zoom int, col int, row int) (*TileSample, error) {
 	output := TileSample{}
 
-	rows, err := c.db.QueryContext(ctx, "SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles WHERE tile_column=? AND tile_row=?", col, row)
+	rows, err := c.db.QueryContext(ctx, "SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles WHERE tile_column=? AND tile_row=? AND zoom_level=?", col, row, zoom)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"os"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -16,8 +17,6 @@ type Box struct {
 	RowMax    uint64
 	ColMin    uint64
 	ColMax    uint64
-	colFail   map[uint64]uint64
-	rowFail   map[uint64]uint64
 }
 
 func New(
@@ -33,8 +32,6 @@ func New(
 		RowMax:    RowMax,
 		ColMin:    ColMin,
 		ColMax:    ColMax,
-		colFail:   map[uint64]uint64{},
-		rowFail:   map[uint64]uint64{},
 	}
 }
 
@@ -54,8 +51,6 @@ func (b Box) ToZoom(zoomLevel uint64) (*Box, error) {
 		RowMax:    b.RowMax * coeficient,
 		ColMin:    b.ColMin * coeficient,
 		ColMax:    b.ColMax * coeficient,
-		colFail:   map[uint64]uint64{},
-		rowFail:   map[uint64]uint64{},
 	}, nil
 }
 
@@ -82,19 +77,18 @@ func (b *Box) Loop(ctx context.Context, loader Loader, processor func(img image.
 		for _, row := range b.rows() {
 			attempt := 0
 
-			if b.colFail[col] > 1 || b.rowFail[row] > 1 {
-				fmt.Printf("too many errors on zoom:%d - row: %d - col: %d - skipping\n", b.ZoomLevel, row, col)
-
-				continue
-			}
-
-			if err := backoff.Retry(func() error {
+			err := backoff.Retry(func() error {
 				if attempt != 0 {
 					fmt.Printf("  #%d zoom:%d - row: %d - col: %d\n", attempt, b.ZoomLevel, row, col)
 				}
 
 				img, err := loader.LoadImage(ctx, b.ZoomLevel, col, row)
-				if err != nil {
+				switch {
+				case errors.Is(err, os.ErrNotExist):
+					attempt++
+
+					return backoff.Permanent(err)
+				case err != nil:
 					attempt++
 
 					return err
@@ -108,11 +102,14 @@ func (b *Box) Loop(ctx context.Context, loader Loader, processor func(img image.
 			}, backoff.WithMaxRetries(
 				backoff.NewConstantBackOff(200*time.Millisecond),
 				3,
-			)); err != nil {
-				fmt.Printf("ERROR zoom:%d - row: %d - col: %d => %s\n", b.ZoomLevel, row, col, err)
+			))
 
-				b.colFail[col]++
-				b.rowFail[row]++
+			switch {
+			case errors.Is(err, os.ErrNotExist):
+				fmt.Printf("NOT FOUND zoom:%d - row: %d - col: %d => %s\n", b.ZoomLevel, row, col, err)
+
+			case err != nil:
+				fmt.Printf("ERROR zoom:%d - row: %d - col: %d => %s\n", b.ZoomLevel, row, col, err)
 			}
 		}
 	}

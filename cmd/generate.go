@@ -18,10 +18,10 @@ func processCommand(databaseFilename *string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			currentBox := tile.New(
 				6,  // ZoomLevel
-				21, // RowMin
-				24, // RowMax
-				30, // ColMin
-				33, // ColMax
+				20, // RowMin
+				25, // RowMax
+				29, // ColMin
+				35, // ColMax
 			)
 
 			database, err := database.New(cmd.Context(), *databaseFilename)
@@ -35,7 +35,7 @@ func processCommand(databaseFilename *string) *cobra.Command {
 
 			for currentBox.ZoomLevel < 12 {
 				if err := currentBox.Loop(context.Background(), oaci.Client{}, func(img image.Image, zoomLevel uint64, col uint64, row uint64) error {
-					fmt.Printf("zoom:%d - row: %d - col: %d (%d, %d)\n", zoomLevel, row, col, img.Bounds().Max.X, img.Bounds().Max.Y)
+					fmt.Printf("zoom:%d - row: %d/%d- col: %d/%d (%d, %d)\n", zoomLevel, row, currentBox.RowMax, col, currentBox.ColMax, img.Bounds().Max.X, img.Bounds().Max.Y)
 
 					return database.InsertTile(cmd.Context(), img, zoomLevel, col, row)
 				}); err != nil {
