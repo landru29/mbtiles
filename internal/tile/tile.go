@@ -11,6 +11,26 @@ import (
 	"github.com/cenkalti/backoff"
 )
 
+//     tile     geoportail
+// col  507 <=> 507
+// row  668 <=> 355
+// zoom 10  <=>  10
+
+// col  515 <=> 515
+// row  672 <=> 351
+// zoom 10  <=>  10
+
+// 1  :   1
+// 2  :   3
+// 3  :   7
+// 4  :   15
+// 5  :   31
+// 6  :   63 - row
+// 7  :  127 - row
+// 8  :  255 - row
+// 9  :  511 - row
+// 10 : 1023 - row
+
 type Box struct {
 	ZoomLevel uint64
 	RowMin    uint64
@@ -36,11 +56,22 @@ func New(
 }
 
 func (b Box) ToZoom(zoomLevel uint64) (*Box, error) {
+	coeficient := uint64(1)
+
 	if zoomLevel < b.ZoomLevel {
-		return nil, errors.New("cannot decrease zoom")
+		for range b.ZoomLevel - zoomLevel {
+			coeficient *= 2
+		}
+
+		return &Box{
+			ZoomLevel: zoomLevel,
+			RowMin:    b.RowMin / coeficient,
+			RowMax:    b.RowMax / coeficient,
+			ColMin:    b.ColMin / coeficient,
+			ColMax:    b.ColMax / coeficient,
+		}, nil
 	}
 
-	coeficient := uint64(1)
 	for range zoomLevel - b.ZoomLevel {
 		coeficient *= 2
 	}

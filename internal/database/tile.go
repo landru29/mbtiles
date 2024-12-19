@@ -88,7 +88,20 @@ func (c Connection) Tile(ctx context.Context, index int) (*TileSample, error) {
 func (c Connection) TileByCoordinate(ctx context.Context, zoom int, col int, row int) (*TileSample, error) {
 	output := TileSample{}
 
-	rows, err := c.db.QueryContext(ctx, "SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles WHERE tile_column=? AND tile_row=? AND zoom_level=?", col, row, zoom)
+	rows, err := c.db.QueryContext(ctx, `SELECT
+	    zoom_level,
+		tile_column,
+		tile_row,
+		tile_data
+	FROM tiles
+	WHERE
+		tile_column=?
+		AND tile_row=?
+		AND zoom_level=?`,
+		col,
+		row,
+		zoom,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +207,31 @@ func (c Connection) TileToPNG(ctx context.Context, display io.Writer, tiles []Ti
 		if _, err := c.db.ExecContext(ctx, "UPDATE tiles SET tile_data=? WHERE zoom_level = ? AND tile_column = ? AND tile_row = ?", buffer.Bytes(), tile.ZoomLevel, tile.Col, tile.Row); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (c Connection) InsertTile(ctx context.Context, img image.Image, zoomLevel uint64, col uint64, row uint64) error {
+	statement, err := c.db.Prepare(`INSERT INTO tiles(zoom_level, tile_column, tile_row, tile_data) VALUES (?, ?, ?, ?)`)
+	if err != nil {
+		return err
+	}
+
+	// apply geoportail offset.
+	offset := uint64(1)
+	for range zoomLevel {
+		offset *= 2
+	}
+
+	var imageBuf bytes.Buffer
+	if err := png.Encode(&imageBuf, img); err != nil {
+		return err
+	}
+
+	_, err = statement.ExecContext(ctx, offset-1-zoomLevel, col, row, imageBuf.Bytes())
+	if err != nil {
+		return err
 	}
 
 	return nil

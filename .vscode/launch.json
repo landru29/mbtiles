@@ -23,7 +23,7 @@
             "program": "${workspaceFolder}/cmd",
             "args": [
                 "metadata",
-                "-d", "${workspaceFolder}/SIA France 02_2024.mbtiles"
+                "-d", "${workspaceFolder}/SIA_france_02_2024.mbtiles"
             ]
         },
         {
@@ -34,7 +34,7 @@
             "program": "${workspaceFolder}/cmd",
             "args": [
                 "tile",
-                "-d", "${workspaceFolder}/oaci.mbtiles"
+                "-d", "${workspaceFolder}/SIA_france_02_2024.mbtiles"
             ]
         },
         {
@@ -46,9 +46,11 @@
             "args": [
                 "tile",
                 "get",
-                "-d", "${workspaceFolder}/SIA France 02_2024.mbtiles",
-                "-r", "22",
-                "-c", "31"
+                "-o", "${workspaceFolder}/ref.png",
+                "-d", "${workspaceFolder}/SIA_france_02_2024.mbtiles",
+                "-c", "253", // 507
+                "-r", "334", //355
+                "-z", "9"
                 //"-i", "5"
             ]
         }
