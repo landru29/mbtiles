@@ -4,7 +4,8 @@ Create a MbTiles file from OACI map from Geoportail
 
 # Usage
 
-```manage MbTiles from OACI
+```
+manage MbTiles from OACI
 
 Usage:
   mbtiles [command]
@@ -22,6 +23,12 @@ Flags:
 
 Use "mbtiles [command] --help" for more information about a command.
 ```
+
+# Development
+
+Open the project as a devContainer with VSCode. Please refer to:
+* VSCode install: https://code.visualstudio.com/download
+* DevContainers: https://code.visualstudio.com/docs/devcontainers/containers
 
 # Build
 

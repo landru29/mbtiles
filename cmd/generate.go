@@ -1,58 +1,23 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"image"
-	"mbtiles/internal/database"
-	"mbtiles/internal/tile"
-	"mbtiles/internal/tile/oaci"
-
 	"github.com/spf13/cobra"
 )
 
-func processCommand(databaseFilename *string) *cobra.Command {
+func processCommand() *cobra.Command {
+	workerCount := 5
+
 	output := &cobra.Command{
 		Use:   "generate",
 		Short: "generate MbTiles from OACI",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			currentBox := tile.New(
-				6,  // ZoomLevel
-				20, // RowMin
-				25, // RowMax
-				29, // ColMin
-				35, // ColMax
-			)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			coord := coordinates(cmd.Context())
 
-			database, err := database.New(cmd.Context(), *databaseFilename)
-			if err != nil {
-				return err
-			}
-
-			defer func() {
-				_ = database.Close()
-			}()
-
-			for currentBox.ZoomLevel < 12 {
-				if err := currentBox.Loop(context.Background(), oaci.Client{}, func(img image.Image, zoomLevel uint64, col uint64, row uint64) error {
-					fmt.Printf("zoom:%d - row: %d/%d- col: %d/%d (%d, %d)\n", zoomLevel, row, currentBox.RowMax, col, currentBox.ColMax, img.Bounds().Max.X, img.Bounds().Max.Y)
-
-					return database.InsertTile(cmd.Context(), img, zoomLevel, col, row)
-				}); err != nil {
-					return err
-				}
-
-				nextBox, err := currentBox.ToZoom(currentBox.ZoomLevel + 1)
-				if err != nil {
-					return err
-				}
-
-				currentBox = *nextBox
-			}
-
-			return nil
+			return appli(cmd.Context()).Generate(cmd.Context(), coord[0], coord[1], workerCount)
 		},
 	}
+
+	output.Flags().IntVarP(&workerCount, "workers", "w", 5, "number of simultaneous http requests")
 
 	return output
 }

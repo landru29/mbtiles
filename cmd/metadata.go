@@ -1,26 +1,15 @@
 package main
 
 import (
-	"mbtiles/internal/database"
-
 	"github.com/spf13/cobra"
 )
 
-func metadataCommand(databaseFilename *string) *cobra.Command {
+func metadataCommand() *cobra.Command {
 	output := &cobra.Command{
 		Use:   "metadata",
 		Short: "manage metadata on MbTiles",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.New(cmd.Context(), *databaseFilename)
-			if err != nil {
-				return err
-			}
-
-			defer func() {
-				_ = db.Close()
-			}()
-
-			metadata, err := db.Metadata(cmd.Context())
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			metadata, err := appli(cmd.Context()).Metadata(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -34,27 +23,20 @@ func metadataCommand(databaseFilename *string) *cobra.Command {
 	}
 
 	output.AddCommand(
-		metadataRewriteCommand(databaseFilename),
+		metadataRewriteCommand(),
 	)
 
 	return output
 }
 
-func metadataRewriteCommand(databaseFilename *string) *cobra.Command {
+func metadataRewriteCommand() *cobra.Command {
 	output := &cobra.Command{
 		Use:   "rewrite",
 		Short: "rewrite metadata on MbTiles",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.New(cmd.Context(), *databaseFilename)
-			if err != nil {
-				return err
-			}
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			coord := coordinates(cmd.Context())
 
-			defer func() {
-				_ = db.Close()
-			}()
-
-			if err := db.MetadataRewrite(cmd.Context()); err != nil {
+			if err := appli(cmd.Context()).MetadataRewrite(cmd.Context(), coord[0], coord[1]); err != nil {
 				return err
 			}
 
