@@ -3,8 +3,11 @@ package tile
 import (
 	"context"
 	"image"
+
+	"github.com/landru29/mbtiles/internal/model"
 )
 
+// Loader is a tile loader.
 type Loader interface {
-	LoadImage(ctx context.Context, zoomLevel uint64, col uint64, row uint64) (image.Image, error)
+	LoadImage(ctx context.Context, request model.TileRequest) (image.Image, error)
 }

@@ -1,0 +1,13 @@
+version: 2
+sql:
+  - engine: sqlite
+    queries: queries
+    schema: migrations
+    gen:
+      go:
+        package: sqlc
+        out: sqlc
+        overrides:
+          - db_type: integer
+            go_type: uint64
+            nullable: false

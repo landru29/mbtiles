@@ -1,118 +1,145 @@
+// Package tile manages tile layers.
 package tile
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"image"
+	"io"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"github.com/landru29/mbtiles/internal/model"
 )
 
-type Box struct {
-	ZoomLevel uint64
-	RowMin    uint64
-	RowMax    uint64
-	ColMin    uint64
-	ColMax    uint64
-}
+// Loop iterates through a layer to execute a processor.
+func Loop(
+	ctx context.Context,
+	layer model.Layer,
+	loader Loader,
+	processor func(tile model.TileSample) error,
+	workerCount int,
+	display io.Writer,
+) error {
+	var wait sync.WaitGroup
 
-func New(
-	ZoomLevel uint64,
-	RowMin uint64,
-	RowMax uint64,
-	ColMin uint64,
-	ColMax uint64,
-) Box {
-	return Box{
-		ZoomLevel: ZoomLevel,
-		RowMin:    RowMin,
-		RowMax:    RowMax,
-		ColMin:    ColMin,
-		ColMax:    ColMax,
-	}
-}
+	requester := make(chan *model.TileRequest, 1)
 
-func (b Box) ToZoom(zoomLevel uint64) (*Box, error) {
-	if zoomLevel < b.ZoomLevel {
-		return nil, errors.New("cannot decrease zoom")
+	if display == nil {
+		display = io.Discard
 	}
 
-	coeficient := uint64(1)
-	for range zoomLevel - b.ZoomLevel {
-		coeficient *= 2
+	for idx := range workerCount {
+		wait.Add(1)
+
+		go worker(ctx, idx, &wait, requester, loader, processor, display)
 	}
 
-	return &Box{
-		ZoomLevel: zoomLevel,
-		RowMin:    b.RowMin * coeficient,
-		RowMax:    b.RowMax * coeficient,
-		ColMin:    b.ColMin * coeficient,
-		ColMax:    b.ColMax * coeficient,
-	}, nil
-}
-
-func (b Box) columns() []uint64 {
-	output := []uint64{}
-	for idx := b.ColMin; idx <= b.ColMax; idx++ {
-		output = append(output, idx)
-	}
-
-	return output
-}
-
-func (b Box) rows() []uint64 {
-	output := []uint64{}
-	for idx := b.RowMin; idx <= b.RowMax; idx++ {
-		output = append(output, idx)
-	}
-
-	return output
-}
-
-func (b *Box) Loop(ctx context.Context, loader Loader, processor func(img image.Image, zoomLevel uint64, col uint64, row uint64) error) error {
-	for _, col := range b.columns() {
-		for _, row := range b.rows() {
-			attempt := 0
-
-			err := backoff.Retry(func() error {
-				if attempt != 0 {
-					fmt.Printf("  #%d zoom:%d - row: %d - col: %d\n", attempt, b.ZoomLevel, row, col)
-				}
-
-				img, err := loader.LoadImage(ctx, b.ZoomLevel, col, row)
-				switch {
-				case errors.Is(err, os.ErrNotExist):
-					attempt++
-
-					return backoff.Permanent(err)
-				case err != nil:
-					attempt++
-
-					return err
-				}
-
-				if err := processor(img, b.ZoomLevel, col, row); err != nil {
-					return backoff.Permanent(err)
-				}
-
-				return nil
-			}, backoff.WithMaxRetries(
-				backoff.NewConstantBackOff(200*time.Millisecond),
-				3,
-			))
-
-			switch {
-			case errors.Is(err, os.ErrNotExist):
-				fmt.Printf("NOT FOUND zoom:%d - row: %d - col: %d => %s\n", b.ZoomLevel, row, col, err)
-
-			case err != nil:
-				fmt.Printf("ERROR zoom:%d - row: %d - col: %d => %s\n", b.ZoomLevel, row, col, err)
+	for _, col := range layer.Columns() {
+		for _, row := range layer.Rows() {
+			requester <- &model.TileRequest{
+				Col:       col,
+				Row:       row,
+				ZoomLevel: layer.ZoomLevel,
 			}
 		}
 	}
 
+	close(requester)
+
+	wait.Wait()
+
 	return nil
+}
+
+func worker(
+	ctx context.Context,
+	index int,
+	wait *sync.WaitGroup,
+	requester chan *model.TileRequest,
+	loader Loader,
+	processor func(tile model.TileSample) error,
+	display io.Writer,
+) {
+	defer func() {
+		wait.Done()
+	}()
+
+	for req := range requester {
+		if req == nil {
+			return
+		}
+
+		attempt := 0
+
+		err := backoff.Retry(func() error {
+			if attempt != 0 {
+				_, _ = fmt.Fprintf(
+					display,
+					"#%d [%d] 🔍%d ↓%d →%d\n",
+					index,
+					attempt,
+					req.ZoomLevel,
+					req.Col,
+					req.Row,
+				)
+			}
+
+			img, err := loader.LoadImage(
+				ctx,
+				*req,
+			)
+
+			switch {
+			case errors.Is(err, os.ErrNotExist):
+				attempt++
+
+				return backoff.Permanent(err)
+			case err != nil:
+				attempt++
+
+				return err
+			}
+
+			if err := processor(model.TileSample{
+				Image:     img,
+				ZoomLevel: req.ZoomLevel,
+				Col:       req.Col,
+				Row:       req.Row,
+			}); err != nil {
+				return backoff.Permanent(err)
+			}
+
+			return nil
+		}, backoff.WithMaxRetries(
+			backoff.NewConstantBackOff(200*time.Millisecond),
+			3,
+		))
+
+		switch {
+		case errors.Is(err, os.ErrNotExist):
+			_, _ = fmt.Fprintf(
+				display,
+				"#%d NOT FOUND 🔍%d ↓%d →%d => %s\n",
+				index,
+				req.ZoomLevel,
+				req.Col,
+				req.Row,
+				err,
+			)
+
+		case err != nil:
+			_, _ = fmt.Fprintf(
+				display,
+				"#%d ERROR 🔍%d ↓%d →%d => %s\n",
+				index,
+				req.ZoomLevel,
+				req.Col,
+				req.Row,
+				err,
+			)
+		}
+	}
 }
