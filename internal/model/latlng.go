@@ -3,7 +3,6 @@ package model
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -11,8 +10,8 @@ import (
 
 // LatLng is a coordinate.
 type LatLng struct {
-	Lat float64
-	Lng float64
+	Lat Coordinate
+	Lng Coordinate
 }
 
 // String implements the pflag.Value interface.
@@ -32,19 +31,12 @@ func (l *LatLng) Set(data string) error {
 		return errors.New("should be <lat>,<lng>")
 	}
 
-	lat, err := strconv.ParseFloat(parts[0], 64)
-	if err != nil {
+	if err := l.Lat.Set(parts[0]); err != nil {
 		return pkgerrors.WithMessage(err, "cannot parse latitude")
 	}
 
-	lng, err := strconv.ParseFloat(parts[1], 64)
-	if err != nil {
+	if err := l.Lng.Set(parts[1]); err != nil {
 		return pkgerrors.WithMessage(err, "cannot parse longitude")
-	}
-
-	*l = LatLng{
-		Lat: lat,
-		Lng: lng,
 	}
 
 	return nil

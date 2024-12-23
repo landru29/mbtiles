@@ -16,8 +16,8 @@ func (a Application) Generate(
 	maxCoord model.LatLng,
 	workerCount int,
 ) error {
-	currentLayer := model.NewFromLatLng(
-		11,
+	currentLayer := model.NewLayer(
+		10,
 		minCoord,
 		maxCoord,
 	)
@@ -34,12 +34,12 @@ func (a Application) Generate(
 			func(tile model.TileSample) error {
 				_, _ = fmt.Fprintf(
 					a.display,
-					"zoom:%d - row: %d/%d- col: %d/%d (%d, %d)\n",
+					"🔍%d - ↓%d/%d - →%d/%d (%d, %d)\n",
 					tile.ZoomLevel,
 					tile.Row,
-					currentLayer.RowMax,
+					currentLayer.RowMax(),
 					tile.Col,
-					currentLayer.ColMax,
+					currentLayer.ColMax(),
 					tile.Image.Bounds().Max.X,
 					tile.Image.Bounds().Max.Y,
 				)

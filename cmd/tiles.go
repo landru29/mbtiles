@@ -26,9 +26,9 @@ func tileCommand() *cobra.Command {
 			cmd.Printf("Max zoom: %d\n", description.Zoom[1])
 
 			for idx := description.Zoom[0]; idx <= description.Zoom[1]; idx++ {
-				cmd.Printf("\nZoom: %d (%d)\n", idx, description.CountPerZoom[idx])
-				cmd.Printf(" - Col bounds: %d - %d\n", description.Col[idx][0], description.Col[idx][1])
-				cmd.Printf(" - Row bounds: %d - %d\n", description.Row[idx][0], description.Row[idx][1])
+				cmd.Printf("🔍%d (%d)", idx, description.CountPerZoom[idx])
+				cmd.Printf("\t↓%d-%d", description.Col[idx][0], description.Col[idx][1])
+				cmd.Printf("\t→%d-%d\n", description.Row[idx][0], description.Row[idx][1])
 			}
 
 			return nil
