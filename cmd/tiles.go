@@ -58,7 +58,7 @@ func tileGetCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app := appli(cmd.Context())
 
-			var tile *model.TileSample
+			var tile *model.Tile
 
 			switch {
 			case index > 0:

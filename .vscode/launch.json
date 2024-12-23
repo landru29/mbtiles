@@ -12,7 +12,12 @@
             "program": "${workspaceFolder}/cmd",
             "args": [
                 "generate",
-                "-d", "${workspaceFolder}/oaci.mbtiles"
+                "-d", "${workspaceFolder}/oaci_250.mbtiles",
+                "--min", "51°17'27.856N,05°30'37.638W",
+                "--max", "41°49'35.519N,09°01'00.727E",
+                "--min-zoom", "6",
+                "--max-zoom", "10",
+                "--format", "jpg"
             ]
         },
         {
@@ -23,7 +28,8 @@
             "program": "${workspaceFolder}/cmd",
             "args": [
                 "metadata",
-                "-d", "${workspaceFolder}/oaci.mbtiles"
+                "-d", "${workspaceFolder}/SIA_france_02_2024.mbtiles"
+                //"-d", "${workspaceFolder}/oaci_250.mbtiles"
             ]
         },
         {
@@ -34,7 +40,8 @@
             "program": "${workspaceFolder}/cmd",
             "args": [
                 "tile",
-                "-d", "${workspaceFolder}/SIA_france_02_2024.mbtiles"
+                //"-d", "${workspaceFolder}/SIA_france_02_2024.mbtiles"
+                "-d", "${workspaceFolder}/oaci_250.mbtiles"
             ]
         },
         {
@@ -46,12 +53,25 @@
             "args": [
                 "tile",
                 "get",
-                "-d", "${workspaceFolder}/oaci.mbtiles",
-                "-r", "253",
-                "-c", "334",
-                "-z", "9"
-                //"-i", "5"
+                "-d", "${workspaceFolder}/SIA_france_02_2024.mbtiles",
+                "-r", "670",
+                "-c", "500",
+                "-z", "10",
+                "-o", "${workspaceFolder}/sia_landi.jpg"
             ]
-        }
+        },
+        {
+            "name": "Tile Download",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd",
+            "args": [
+                "source",
+                "-o", "${workspaceFolder}/sample.jpg",
+                "-c", "48°31'49N,004°09'06W",
+                "-z", "10",
+            ]
+        },
     ]
 }

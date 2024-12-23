@@ -12,26 +12,25 @@ import (
 // Generate launch the MbTiles file generation.
 func (a Application) Generate(
 	ctx context.Context,
-	minCoord model.LatLng,
-	maxCoord model.LatLng,
+	options model.Option,
 	workerCount int,
 ) error {
 	currentLayer := model.NewLayer(
-		10,
-		minCoord,
-		maxCoord,
+		options.ZoomMax,
+		options.CoordinateMin,
+		options.CoordinateMax,
 	)
 
 	defer func() {
 		_ = a.database.Close()
 	}()
 
-	for currentLayer.ZoomLevel > 5 {
+	for currentLayer.ZoomLevel >= options.ZoomMin {
 		if err := tile.Loop(
 			ctx,
 			currentLayer,
 			oaci.Client{},
-			func(tile model.TileSample) error {
+			func(tile model.Tile) error {
 				_, _ = fmt.Fprintf(
 					a.display,
 					"🔍%d - ↓%d/%d - →%d/%d (%d, %d)\n",
@@ -44,7 +43,7 @@ func (a Application) Generate(
 					tile.Image.Bounds().Max.Y,
 				)
 
-				return a.database.InsertTile(ctx, tile)
+				return a.database.InsertTile(ctx, tile.TMS())
 			},
 			workerCount,
 			a.display,

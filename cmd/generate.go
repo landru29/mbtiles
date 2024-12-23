@@ -11,9 +11,11 @@ func processCommand() *cobra.Command {
 		Use:   "generate",
 		Short: "generate MbTiles from OACI",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			coord := coordinates(cmd.Context())
-
-			return appli(cmd.Context()).Generate(cmd.Context(), coord[0], coord[1], workerCount)
+			return appli(cmd.Context()).Generate(
+				cmd.Context(),
+				options(cmd.Context()),
+				workerCount,
+			)
 		},
 	}
 

@@ -102,7 +102,7 @@ func (a Application) Tiles(ctx context.Context) (*model.TilesDescription, error)
 }
 
 // TileByIndex picks one tile with the specified index.
-func (a Application) TileByIndex(ctx context.Context, index uint64) (*model.TileSample, error) {
+func (a Application) TileByIndex(ctx context.Context, index uint64) (*model.Tile, error) {
 	tile, err := a.database.Tile(ctx, index)
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func (a Application) TileByCoordinates(
 	zoomLevel uint64,
 	col uint64,
 	row uint64,
-) (*model.TileSample, error) {
+) (*model.Tile, error) {
 	tile, err := a.database.TileByCoordinate(ctx, model.TileRequest{
 		ZoomLevel: zoomLevel,
 		Col:       col,

@@ -81,29 +81,24 @@ func (l Layer) ColMax() uint64 {
 
 // XTile convert longitude to tile column.
 func (l Layer) XTile(lng Coordinate) uint64 {
-	coef := float64(1)
-	for range l.ZoomLevel {
-		coef *= 2
-	}
+	coef := float64(int(1) << l.ZoomLevel)
 
-	return uint64(coef * (float64(lng) + 180) / 360)
+	return uint64(coef * (float64(lng) + 180.0) / 360.0)
 }
 
 // YTile converts latitude to tile row.
 func (l Layer) YTile(lat Coordinate) uint64 {
-	coef := float64(1)
-	for range l.ZoomLevel {
-		coef *= 2
-	}
+	coef := float64(int(1) << (l.ZoomLevel - 1))
 
 	latRad := float64(lat) * math.Pi / 180.0
 
-	yTile := coef * (1 - (math.Log(math.Tan(latRad)+1/math.Cos(latRad)) / math.Pi)) / 2
+	yTile := coef * (1.0 - (math.Log(math.Tan(latRad)+1.0/math.Cos(latRad)) / math.Pi))
 
 	return uint64(yTile)
 }
 
 // LatLngToTile converts lat-lng coordinates to tile.
+// Returns col, row.
 func (l Layer) LatLngToTile(lat Coordinate, lng Coordinate) (uint64, uint64) {
 	return l.XTile(lng), l.YTile(lat)
 }

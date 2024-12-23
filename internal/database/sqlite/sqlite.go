@@ -23,9 +23,10 @@ var migrationsFS embed.FS
 
 // Connection is the sqlite implementation of the database.
 type Connection struct {
-	db       *sql.DB
-	sqlc     *sqlc.Queries
-	filename string
+	db         *sql.DB
+	sqlc       *sqlc.Queries
+	filename   string
+	tileFormat string
 }
 
 func createDBfile(databaseName string) error {
@@ -49,9 +50,14 @@ func (c *Connection) Open() error {
 }
 
 // New creates the database.
-func New(ctx context.Context, databaseName string, minCoord model.LatLng, maxCood model.LatLng) (*Connection, error) {
+func New(
+	ctx context.Context,
+	databaseName string,
+	options model.Option,
+) (*Connection, error) {
 	conn := &Connection{
-		filename: databaseName,
+		filename:   databaseName,
+		tileFormat: options.Format,
 	}
 
 	_, err := os.Stat(databaseName)
@@ -72,7 +78,7 @@ func New(ctx context.Context, databaseName string, minCoord model.LatLng, maxCoo
 			return nil, err
 		}
 
-		if err := conn.initDatabase(ctx, minCoord, maxCood); err != nil {
+		if err := conn.initDatabase(ctx, options); err != nil {
 			return nil, err
 		}
 
@@ -82,7 +88,10 @@ func New(ctx context.Context, databaseName string, minCoord model.LatLng, maxCoo
 	return nil, err
 }
 
-func (c Connection) initDatabase(ctx context.Context, minCoord model.LatLng, maxCood model.LatLng) error {
+func (c Connection) initDatabase(
+	ctx context.Context,
+	options model.Option,
+) error {
 	migrations := &migrate.EmbedFileSystemMigrationSource{
 		FileSystem: migrationsFS,
 		Root:       "migrations",
@@ -97,7 +106,7 @@ func (c Connection) initDatabase(ctx context.Context, minCoord model.LatLng, max
 		return err
 	}
 
-	if err := c.MetadataRewrite(ctx, minCoord, maxCood); err != nil {
+	if err := c.MetadataRewrite(ctx, options); err != nil {
 		return err
 	}
 

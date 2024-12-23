@@ -5,12 +5,13 @@ import (
 	"math"
 	"regexp"
 	"strconv"
+	"strings"
 
 	pkgerrors "github.com/pkg/errors"
 )
 
 const (
-	coordinateRegexp = `(-?\d+)°((\d+)')?([\d.]+)?`
+	coordinateRegexp = `(-?\d+)°((\d+)')?([\d.]+)?([NSEW])?`
 )
 
 // Coordinate is a GNSS coordinate.
@@ -50,10 +51,10 @@ func (l *Coordinate) String() string {
 
 // Set implements the pflag.Value interface.
 func (l *Coordinate) Set(data string) error {
-	if value, err := strconv.ParseFloat(data, 64); err != nil {
+	if value, err := strconv.ParseFloat(data, 64); err == nil {
 		*l = Coordinate(value)
 
-		return nil //nolint: nilerr
+		return nil
 	}
 
 	regxp, err := regexp.Compile(coordinateRegexp) //nolint: gocritic
@@ -62,11 +63,15 @@ func (l *Coordinate) Set(data string) error {
 	}
 
 	matcher := regxp.FindAllStringSubmatch(data, -1)
-	if len(matcher) != 1 || len(matcher[0]) != 5 {
+	if len(matcher) != 1 || len(matcher[0]) != 6 {
 		return fmt.Errorf("cannot parse coordinate %s", data)
 	}
 
 	sign := 1.0
+
+	if strings.ToUpper(matcher[0][5]) == "W" || strings.ToUpper(matcher[0][5]) == "S" {
+		sign = -1.0
+	}
 
 	if matcher[0][1] != "" {
 		deg, err := strconv.ParseInt(matcher[0][1], 10, 64)
@@ -75,7 +80,7 @@ func (l *Coordinate) Set(data string) error {
 		}
 
 		if deg < 0 {
-			sign = -1.0
+			sign *= -1.0
 
 			deg = -deg
 		}
@@ -104,4 +109,9 @@ func (l *Coordinate) Set(data string) error {
 	*l *= Coordinate(sign)
 
 	return nil
+}
+
+// Type implements the pflag.Value interface.
+func (l *Coordinate) Type() string {
+	return "Coordinate"
 }

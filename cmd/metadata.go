@@ -34,9 +34,10 @@ func metadataRewriteCommand() *cobra.Command {
 		Use:   "rewrite",
 		Short: "rewrite metadata on MbTiles",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			coord := coordinates(cmd.Context())
-
-			if err := appli(cmd.Context()).MetadataRewrite(cmd.Context(), coord[0], coord[1]); err != nil {
+			if err := appli(cmd.Context()).MetadataRewrite(
+				cmd.Context(),
+				options(cmd.Context()),
+			); err != nil {
 				return err
 			}
 

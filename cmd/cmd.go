@@ -14,8 +14,8 @@ import (
 )
 
 type (
-	appContext   struct{}
-	coordContext struct{}
+	appContext    struct{}
+	optionContext struct{}
 )
 
 func main() {
@@ -57,21 +57,24 @@ func appli(ctx context.Context) *app.Application {
 	return application
 }
 
-func coordinates(ctx context.Context) []model.LatLng {
-	coord, found := ctx.Value(coordContext{}).([]model.LatLng)
+func options(ctx context.Context) model.Option {
+	zoom, found := ctx.Value(optionContext{}).(model.Option)
 	if !found {
-		return []model.LatLng{{}, {}} // avoid null pointer.
+		return model.Option{} // avoid null pointer.
 	}
 
-	return coord
+	return zoom
 }
 
 func initCommands() *cobra.Command {
 	databaseFilename := ""
+	maxZoom := uint64(10)
+	minZoom := uint64(4)
 	minCoord := model.LatLng{
 		Lat: 41.990226,
 		Lng: -5.593299,
 	}
+	format := "png"
 
 	maxCoord := model.LatLng{
 		Lat: 51.251834,
@@ -82,7 +85,15 @@ func initCommands() *cobra.Command {
 		Use:   "mbtiles",
 		Short: "manage MbTiles from OACI",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			database, err := sqlite.New(cmd.Context(), databaseFilename, minCoord, maxCoord)
+			globalOptions := model.Option{
+				CoordinateMin: minCoord,
+				CoordinateMax: maxCoord,
+				ZoomMin:       minZoom,
+				ZoomMax:       maxZoom,
+				Format:        format,
+			}
+
+			database, err := sqlite.New(cmd.Context(), databaseFilename, globalOptions)
 			if err != nil {
 				return err
 			}
@@ -92,8 +103,8 @@ func initCommands() *cobra.Command {
 			cmd.SetContext(
 				context.WithValue(
 					context.WithValue(cmd.Context(), appContext{}, application),
-					coordContext{},
-					[]model.LatLng{minCoord, maxCoord},
+					optionContext{},
+					globalOptions,
 				),
 			)
 
@@ -108,11 +119,15 @@ func initCommands() *cobra.Command {
 		processCommand(),
 		metadataCommand(),
 		tileCommand(),
+		sourceCommand(),
 	)
 
 	cmdRoot.PersistentFlags().StringVarP(&databaseFilename, "database", "d", "oaci.mbtiles", "database filename")
 	cmdRoot.PersistentFlags().VarP(&minCoord, "min", "", "minimum coordinate")
 	cmdRoot.PersistentFlags().VarP(&maxCoord, "max", "", "minimum coordinate")
+	cmdRoot.PersistentFlags().Uint64VarP(&maxZoom, "max-zoom", "", 10, "max zoom")
+	cmdRoot.PersistentFlags().Uint64VarP(&minZoom, "min-zoom", "", 4, "min zoom")
+	cmdRoot.PersistentFlags().StringVarP(&format, "format", "f", "png", "tile format")
 
 	return cmdRoot
 }
