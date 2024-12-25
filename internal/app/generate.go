@@ -3,48 +3,75 @@ package app
 import (
 	"context"
 	"fmt"
+	"strconv"
 
+	"github.com/landru29/mbtiles/internal/database"
 	"github.com/landru29/mbtiles/internal/model"
 	"github.com/landru29/mbtiles/internal/tile"
 	"github.com/landru29/mbtiles/internal/tile/oaci"
+	pkgerrors "github.com/pkg/errors"
 )
 
 // Generate launch the MbTiles file generation.
 func (a Application) Generate(
 	ctx context.Context,
-	minCoord model.LatLng,
-	maxCoord model.LatLng,
+	options model.Option,
 	workerCount int,
 ) error {
-	currentLayer := model.NewFromLatLng(
-		11,
-		minCoord,
-		maxCoord,
+	currentLayer := model.NewLayer(
+		options.ZoomMax,
+		options.CoordinateMin,
+		options.CoordinateMax,
 	)
 
 	defer func() {
 		_ = a.database.Close()
 	}()
 
-	for currentLayer.ZoomLevel > 5 {
+	for currentLayer.ZoomLevel >= options.ZoomMin {
 		if err := tile.Loop(
 			ctx,
 			currentLayer,
 			oaci.Client{},
-			func(tile model.TileSample) error {
+			func(index int, tile model.Tile) error {
 				_, _ = fmt.Fprintf(
 					a.display,
-					"zoom:%d - row: %d/%d- col: %d/%d (%d, %d)\n",
+					"#%d | 🔍%d - ↓%d/%d - →%d/%d (%d, %d)\n",
+					index,
 					tile.ZoomLevel,
 					tile.Row,
-					currentLayer.RowMax,
+					currentLayer.RowMax(),
 					tile.Col,
-					currentLayer.ColMax,
+					currentLayer.ColMax(),
 					tile.Image.Bounds().Max.X,
 					tile.Image.Bounds().Max.Y,
 				)
 
-				return a.database.InsertTile(ctx, tile)
+				if err := a.database.InsertTile(ctx, tile.TMS()); err != nil {
+					return pkgerrors.WithMessage(err, "cannot insert tile")
+				}
+
+				a.zoomDetectionLock.Lock()
+				defer a.zoomDetectionLock.Unlock()
+
+				if a.maxDetectedZoom == 0 || a.maxDetectedZoom < tile.ZoomLevel {
+					a.maxDetectedZoom = tile.ZoomLevel
+				}
+
+				if a.minDetectedZoom == 0 || a.minDetectedZoom > tile.ZoomLevel {
+					a.minDetectedZoom = tile.ZoomLevel
+				}
+
+				if a.detectedFormat == "" {
+					_, _ = fmt.Fprintf(a.display, "detected format: %s\n", tile.OriginalFormat)
+				}
+
+				a.detectedFormat = options.Format
+				if options.Format == model.FormatNoTransform {
+					a.detectedFormat = tile.OriginalFormat
+				}
+
+				return nil
 			},
 			workerCount,
 			a.display,
@@ -58,6 +85,30 @@ func (a Application) Generate(
 		}
 
 		currentLayer = *nextBox
+	}
+
+	if err := a.database.UpdateMetadata(
+		ctx,
+		database.MetadataMaxzoom,
+		strconv.FormatUint(a.maxDetectedZoom, 10),
+	); err != nil {
+		return pkgerrors.WithMessage(err, "cannot set max zoom")
+	}
+
+	if err := a.database.UpdateMetadata(
+		ctx,
+		database.MetadataMinzoom,
+		strconv.FormatUint(a.minDetectedZoom, 10),
+	); err != nil {
+		return pkgerrors.WithMessage(err, "cannot set min zoom")
+	}
+
+	if err := a.database.UpdateMetadata(
+		ctx,
+		database.MetadataFormat,
+		a.detectedFormat.String(),
+	); err != nil {
+		return pkgerrors.WithMessage(err, "cannot set min zoom")
 	}
 
 	return nil

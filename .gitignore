@@ -1,3 +1,5 @@
 *.mbtiles
+*..mbtiles-journal
 /mbtiles
 *.png
+__debug_*

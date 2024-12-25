@@ -17,8 +17,11 @@ func (a Application) Metadata(ctx context.Context) (map[string]string, error) {
 }
 
 // MetadataRewrite rewritres the correct metadata.
-func (a Application) MetadataRewrite(ctx context.Context, minCoord model.LatLng, maxCood model.LatLng) error {
-	if err := a.database.MetadataRewrite(ctx, minCoord, maxCood); err != nil {
+func (a Application) MetadataRewrite(
+	ctx context.Context,
+	options model.Option,
+) error {
+	if err := a.database.MetadataRewrite(ctx, options); err != nil {
 		return err
 	}
 

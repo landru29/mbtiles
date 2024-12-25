@@ -19,7 +19,7 @@ func Loop(
 	ctx context.Context,
 	layer model.Layer,
 	loader Loader,
-	processor func(tile model.TileSample) error,
+	processor func(workerIndex int, tile model.Tile) error,
 	workerCount int,
 	display io.Writer,
 ) error {
@@ -60,7 +60,7 @@ func worker(
 	wait *sync.WaitGroup,
 	requester chan *model.TileRequest,
 	loader Loader,
-	processor func(tile model.TileSample) error,
+	processor func(workerIndex int, tile model.Tile) error,
 	display io.Writer,
 ) {
 	defer func() {
@@ -103,7 +103,7 @@ func worker(
 				return err
 			}
 
-			if err := processor(model.TileSample{
+			if err := processor(index, model.Tile{
 				Image:     img,
 				ZoomLevel: req.ZoomLevel,
 				Col:       req.Col,

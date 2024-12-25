@@ -19,7 +19,7 @@ import (
 )
 
 func TestLoad(t *testing.T) {
-	t.Run("coordinate shift", func(t *testing.T) {
+	t.Run("coordinate download", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -56,7 +56,7 @@ func TestLoad(t *testing.T) {
 			model.TileRequest{
 				ZoomLevel: 10,
 				Col:       500,
-				Row:       670,
+				Row:       353,
 			},
 		)
 

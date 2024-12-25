@@ -3,10 +3,10 @@ package sqlite
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"image"
+	"image/jpeg"
 	"image/png"
-	"io"
+	"strings"
 
 	"github.com/landru29/mbtiles/internal/database/sqlite/sqlc"
 	"github.com/landru29/mbtiles/internal/model"
@@ -24,7 +24,7 @@ func (c Connection) TilesCount(ctx context.Context) (uint64, error) {
 }
 
 // Tile picks on tile with its index.
-func (c Connection) Tile(ctx context.Context, index uint64) (*model.TileSample, error) {
+func (c Connection) Tile(ctx context.Context, index uint64) (*model.Tile, error) {
 	tile, err := c.sqlc.TileByIndex(ctx, index)
 	if err != nil {
 		return nil, pkgerrors.WithMessage(err, "cannot read tile")
@@ -35,9 +35,9 @@ func (c Connection) Tile(ctx context.Context, index uint64) (*model.TileSample, 
 		return nil, err
 	}
 
-	return &model.TileSample{
+	return &model.Tile{
 		Image:     out,
-		Type:      format,
+		Type:      model.Format(format),
 		ZoomLevel: tile.ZoomLevel,
 		Row:       tile.TileRow,
 		Col:       tile.TileColumn,
@@ -45,7 +45,7 @@ func (c Connection) Tile(ctx context.Context, index uint64) (*model.TileSample, 
 }
 
 // TileByCoordinate picks one tile with the specified coordinates.
-func (c Connection) TileByCoordinate(ctx context.Context, request model.TileRequest) (*model.TileSample, error) {
+func (c Connection) TileByCoordinate(ctx context.Context, request model.TileRequest) (*model.Tile, error) {
 	tile, err := c.sqlc.TileByCoordinate(ctx, sqlc.TileByCoordinateParams{
 		Col:       request.Col,
 		Row:       request.Row,
@@ -60,9 +60,9 @@ func (c Connection) TileByCoordinate(ctx context.Context, request model.TileRequ
 		return nil, err
 	}
 
-	return &model.TileSample{
+	return &model.Tile{
 		Image:     out,
-		Type:      format,
+		Type:      model.Format(format),
 		ZoomLevel: tile.ZoomLevel,
 		Row:       tile.TileRow,
 		Col:       tile.TileColumn,
@@ -70,13 +70,13 @@ func (c Connection) TileByCoordinate(ctx context.Context, request model.TileRequ
 }
 
 // AllTiles picks all tiles.
-func (c Connection) AllTiles(ctx context.Context) ([]model.TileSample, error) {
+func (c Connection) AllTiles(ctx context.Context) ([]model.Tile, error) {
 	allTiles, err := c.sqlc.Tiles(ctx)
 	if err != nil {
 		return nil, pkgerrors.WithMessage(err, "cannot read all tiles")
 	}
 
-	output := make([]model.TileSample, len(allTiles))
+	output := make([]model.Tile, len(allTiles))
 
 	for idx, element := range allTiles {
 		out, format, err := image.Decode(bytes.NewBuffer(element.TileData))
@@ -84,44 +84,20 @@ func (c Connection) AllTiles(ctx context.Context) ([]model.TileSample, error) {
 			return nil, err
 		}
 
-		output[idx] = model.TileSample{
+		output[idx] = model.Tile{
 			ZoomLevel: element.ZoomLevel,
 			Row:       element.TileRow,
 			Col:       element.TileColumn,
 			Image:     out,
-			Type:      format,
+			Type:      model.Format(format),
 		}
 	}
 
 	return output, err
 }
 
-// TileToPNG rewrites a tile in PNG format.
-func (c Connection) TileToPNG(ctx context.Context, display io.Writer, tiles []model.TileSample) error {
-	for idx, tile := range tiles {
-		var buffer bytes.Buffer
-
-		if err := png.Encode(&buffer, tile.Image); err != nil {
-			return pkgerrors.WithMessage(err, "cannot encode image")
-		}
-
-		_, _ = fmt.Fprintf(display, "#%d Zoom: %d - Row: %d - Col: %d\n", idx, tile.ZoomLevel, tile.Row, tile.Col)
-
-		if err := c.sqlc.TileDataUpdate(ctx, sqlc.TileDataUpdateParams{
-			TileData:  buffer.Bytes(),
-			Col:       tile.Col,
-			Row:       tile.Row,
-			ZoomLevel: tile.ZoomLevel,
-		}); err != nil {
-			return pkgerrors.WithMessage(err, "cannot update tile data")
-		}
-	}
-
-	return nil
-}
-
 // InsertTile adds a new tile.
-func (c Connection) InsertTile(ctx context.Context, tile model.TileSample) error {
+func (c Connection) InsertTile(ctx context.Context, tile model.Tile) error {
 	statement, err := c.db.Prepare(`INSERT INTO tiles(zoom_level, tile_column, tile_row, tile_data) VALUES (?, ?, ?, ?)`)
 	if err != nil {
 		return err
@@ -132,8 +108,20 @@ func (c Connection) InsertTile(ctx context.Context, tile model.TileSample) error
 	}()
 
 	var imageBuf bytes.Buffer
-	if err := png.Encode(&imageBuf, tile.Image); err != nil {
-		return err
+
+	switch strings.ToLower(c.tileFormat.String()) {
+	case model.FormatPNG.String():
+		if err := png.Encode(&imageBuf, tile.Image); err != nil {
+			return err
+		}
+	case model.FormatJPEG.String():
+		if err := jpeg.Encode(&imageBuf, tile.Image, &jpeg.Options{Quality: 100}); err != nil {
+			return err
+		}
+	default:
+		if _, err := imageBuf.Write(tile.RawImage); err != nil {
+			return err
+		}
 	}
 
 	_, err = statement.ExecContext(ctx, tile.ZoomLevel, tile.Col, tile.Row, imageBuf.Bytes())

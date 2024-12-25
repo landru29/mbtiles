@@ -55,12 +55,13 @@ func (c Client) LoadImage(ctx context.Context, request model.TileRequest) (image
 		return nil, pkgerrors.WithMessage(backoff.Permanent(err), "cannot parse tile source url")
 	}
 
-	offset := uint64(1)
-	for range request.ZoomLevel {
-		offset *= 2
-	}
+	// offset := uint64(1)
+	// for range request.ZoomLevel {
+	// 	offset *= 2
+	// }
 
-	row := offset - 1 - request.Row
+	// row := offset - 1 - request.Row
+	row := request.Row
 
 	values := url.Values{}
 	values.Add("apikey", "geoportail")

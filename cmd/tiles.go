@@ -26,9 +26,9 @@ func tileCommand() *cobra.Command {
 			cmd.Printf("Max zoom: %d\n", description.Zoom[1])
 
 			for idx := description.Zoom[0]; idx <= description.Zoom[1]; idx++ {
-				cmd.Printf("\nZoom: %d (%d)\n", idx, description.CountPerZoom[idx])
-				cmd.Printf(" - Col bounds: %d - %d\n", description.Col[idx][0], description.Col[idx][1])
-				cmd.Printf(" - Row bounds: %d - %d\n", description.Row[idx][0], description.Row[idx][1])
+				cmd.Printf("🔍%d (%d)", idx, description.CountPerZoom[idx])
+				cmd.Printf("\t↓%d-%d", description.Col[idx][0], description.Col[idx][1])
+				cmd.Printf("\t→%d-%d\n", description.Row[idx][0], description.Row[idx][1])
 			}
 
 			return nil
@@ -37,7 +37,6 @@ func tileCommand() *cobra.Command {
 
 	output.AddCommand(
 		tileGetCommand(),
-		tileRewriteCommand(),
 	)
 
 	return output
@@ -58,7 +57,7 @@ func tileGetCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app := appli(cmd.Context())
 
-			var tile *model.TileSample
+			var tile *model.Tile
 
 			switch {
 			case index > 0:
@@ -114,18 +113,6 @@ func tileGetCommand() *cobra.Command {
 	output.Flags().Int64VarP(&row, "row", "r", -1, "tile row in database")
 	output.Flags().Int64VarP(&zoom, "zoom", "z", -1, "tile zoom in database")
 	output.Flags().StringVarP(&outputFile, "output", "o", "", "out filename")
-
-	return output
-}
-
-func tileRewriteCommand() *cobra.Command {
-	output := &cobra.Command{
-		Use:   "rewrite",
-		Short: "rewrite tile (PNG) to MbTiles",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return appli(cmd.Context()).TileRewrite(cmd.Context())
-		},
-	}
 
 	return output
 }

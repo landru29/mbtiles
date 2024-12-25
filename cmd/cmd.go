@@ -14,8 +14,8 @@ import (
 )
 
 type (
-	appContext   struct{}
-	coordContext struct{}
+	appContext    struct{}
+	optionContext struct{}
 )
 
 func main() {
@@ -57,32 +57,37 @@ func appli(ctx context.Context) *app.Application {
 	return application
 }
 
-func coordinates(ctx context.Context) []model.LatLng {
-	coord, found := ctx.Value(coordContext{}).([]model.LatLng)
+func options(ctx context.Context) model.Option {
+	zoom, found := ctx.Value(optionContext{}).(model.Option)
 	if !found {
-		return []model.LatLng{{}, {}} // avoid null pointer.
+		return model.Option{} // avoid null pointer.
 	}
 
-	return coord
+	return zoom
 }
 
 func initCommands() *cobra.Command {
-	databaseFilename := ""
-	minCoord := model.LatLng{
-		Lat: 41.990226,
-		Lng: -5.593299,
+	globalOptions := model.Option{
+		CoordinateMin: model.LatLng{
+			Lat: 41.990226,
+			Lng: -5.593299,
+		},
+		CoordinateMax: model.LatLng{
+			Lat: 51.251834,
+			Lng: 8.561345,
+		},
+		ZoomMin: uint64(4),
+		ZoomMax: uint64(10),
+		Format:  model.FormatNoTransform,
 	}
 
-	maxCoord := model.LatLng{
-		Lat: 51.251834,
-		Lng: 8.561345,
-	}
+	databaseFilename := ""
 
 	cmdRoot := &cobra.Command{
 		Use:   "mbtiles",
 		Short: "manage MbTiles from OACI",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			database, err := sqlite.New(cmd.Context(), databaseFilename, minCoord, maxCoord)
+			database, err := sqlite.New(cmd.Context(), databaseFilename, globalOptions)
 			if err != nil {
 				return err
 			}
@@ -92,8 +97,8 @@ func initCommands() *cobra.Command {
 			cmd.SetContext(
 				context.WithValue(
 					context.WithValue(cmd.Context(), appContext{}, application),
-					coordContext{},
-					[]model.LatLng{minCoord, maxCoord},
+					optionContext{},
+					globalOptions,
 				),
 			)
 
@@ -108,11 +113,17 @@ func initCommands() *cobra.Command {
 		processCommand(),
 		metadataCommand(),
 		tileCommand(),
+		sourceCommand(),
 	)
 
 	cmdRoot.PersistentFlags().StringVarP(&databaseFilename, "database", "d", "oaci.mbtiles", "database filename")
-	cmdRoot.PersistentFlags().VarP(&minCoord, "min", "", "minimum coordinate")
-	cmdRoot.PersistentFlags().VarP(&maxCoord, "max", "", "minimum coordinate")
+	cmdRoot.PersistentFlags().VarP(&globalOptions.CoordinateMin, "min", "", "minimum coordinate")
+	cmdRoot.PersistentFlags().VarP(&globalOptions.CoordinateMax, "max", "", "minimum coordinate")
+	cmdRoot.PersistentFlags().Uint64VarP(&globalOptions.ZoomMax, "max-zoom", "", 10, "max zoom")
+	cmdRoot.PersistentFlags().Uint64VarP(&globalOptions.ZoomMin, "min-zoom", "", 4, "min zoom")
+	cmdRoot.PersistentFlags().VarP(&globalOptions.Format, "format", "f", "tile format (jpg, png, no-transform)")
+	cmdRoot.PersistentFlags().StringVarP(&globalOptions.Name, "name", "", "myMap", "database name")
+	cmdRoot.PersistentFlags().StringVarP(&globalOptions.Description, "description", "", "My Map", "database description")
 
 	return cmdRoot
 }
