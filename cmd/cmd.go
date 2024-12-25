@@ -67,32 +67,26 @@ func options(ctx context.Context) model.Option {
 }
 
 func initCommands() *cobra.Command {
-	databaseFilename := ""
-	maxZoom := uint64(10)
-	minZoom := uint64(4)
-	minCoord := model.LatLng{
-		Lat: 41.990226,
-		Lng: -5.593299,
+	globalOptions := model.Option{
+		CoordinateMin: model.LatLng{
+			Lat: 41.990226,
+			Lng: -5.593299,
+		},
+		CoordinateMax: model.LatLng{
+			Lat: 51.251834,
+			Lng: 8.561345,
+		},
+		ZoomMin: uint64(4),
+		ZoomMax: uint64(10),
+		Format:  model.FormatNoTransform,
 	}
-	format := "png"
 
-	maxCoord := model.LatLng{
-		Lat: 51.251834,
-		Lng: 8.561345,
-	}
+	databaseFilename := ""
 
 	cmdRoot := &cobra.Command{
 		Use:   "mbtiles",
 		Short: "manage MbTiles from OACI",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			globalOptions := model.Option{
-				CoordinateMin: minCoord,
-				CoordinateMax: maxCoord,
-				ZoomMin:       minZoom,
-				ZoomMax:       maxZoom,
-				Format:        format,
-			}
-
 			database, err := sqlite.New(cmd.Context(), databaseFilename, globalOptions)
 			if err != nil {
 				return err
@@ -123,11 +117,13 @@ func initCommands() *cobra.Command {
 	)
 
 	cmdRoot.PersistentFlags().StringVarP(&databaseFilename, "database", "d", "oaci.mbtiles", "database filename")
-	cmdRoot.PersistentFlags().VarP(&minCoord, "min", "", "minimum coordinate")
-	cmdRoot.PersistentFlags().VarP(&maxCoord, "max", "", "minimum coordinate")
-	cmdRoot.PersistentFlags().Uint64VarP(&maxZoom, "max-zoom", "", 10, "max zoom")
-	cmdRoot.PersistentFlags().Uint64VarP(&minZoom, "min-zoom", "", 4, "min zoom")
-	cmdRoot.PersistentFlags().StringVarP(&format, "format", "f", "png", "tile format")
+	cmdRoot.PersistentFlags().VarP(&globalOptions.CoordinateMin, "min", "", "minimum coordinate")
+	cmdRoot.PersistentFlags().VarP(&globalOptions.CoordinateMax, "max", "", "minimum coordinate")
+	cmdRoot.PersistentFlags().Uint64VarP(&globalOptions.ZoomMax, "max-zoom", "", 10, "max zoom")
+	cmdRoot.PersistentFlags().Uint64VarP(&globalOptions.ZoomMin, "min-zoom", "", 4, "min zoom")
+	cmdRoot.PersistentFlags().VarP(&globalOptions.Format, "format", "f", "tile format (jpg, png, no-transform)")
+	cmdRoot.PersistentFlags().StringVarP(&globalOptions.Name, "name", "", "myMap", "database name")
+	cmdRoot.PersistentFlags().StringVarP(&globalOptions.Description, "description", "", "My Map", "database description")
 
 	return cmdRoot
 }

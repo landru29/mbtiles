@@ -10,7 +10,7 @@ import (
 
 // Download downloads one tile.
 func (a Application) Download(ctx context.Context, coordinate model.LatLng, zoomLevel uint64) (image.Image, error) {
-	col, row := model.Layer{ZoomLevel: zoomLevel}.LatLngToTile(coordinate.Lat, coordinate.Lng)
+	col, row := model.Layer{ZoomLevel: zoomLevel}.LatLngToTile(coordinate)
 
 	return oaci.Client{}.LoadImage(ctx, model.TileRequest{
 		ZoomLevel: zoomLevel,

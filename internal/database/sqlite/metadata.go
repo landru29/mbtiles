@@ -3,8 +3,8 @@ package sqlite
 import (
 	"context"
 	"fmt"
-	"strconv"
 
+	"github.com/landru29/mbtiles/internal/database"
 	"github.com/landru29/mbtiles/internal/database/sqlite/sqlc"
 	"github.com/landru29/mbtiles/internal/model"
 	pkgerrors "github.com/pkg/errors"
@@ -33,20 +33,20 @@ func (c Connection) MetadataRewrite(
 	}
 
 	if err := c.insertMetadata(ctx, map[string]string{
-		"bounds": fmt.Sprintf(
+		database.MetadataName:        options.Name,
+		database.MetadataFormat:      "",
+		database.MetadataMinzoom:     "0",
+		database.MetadataMaxzoom:     "0",
+		database.MetadataType:        "overlay",
+		database.MetadataDescription: options.Description,
+		database.MetadataVersion:     "1.3",
+		database.MetadataBounds: fmt.Sprintf(
 			"%f,%f,%f,%f",
 			model.Min(options.CoordinateMin.Lng, options.CoordinateMax.Lng),
 			model.Min(options.CoordinateMin.Lat, options.CoordinateMax.Lat),
 			model.Max(options.CoordinateMin.Lng, options.CoordinateMax.Lng),
 			model.Max(options.CoordinateMin.Lat, options.CoordinateMax.Lat),
 		),
-		"name":        "oaci_1_250",
-		"format":      options.Format,
-		"minzoom":     strconv.FormatUint(options.ZoomMin, 10),
-		"maxzoom":     strconv.FormatUint(options.ZoomMax, 10),
-		"type":        "overlay",
-		"description": "SIA France",
-		"version":     "1.3",
 	}); err != nil {
 		return err
 	}
@@ -68,4 +68,12 @@ func (c Connection) Metadata(ctx context.Context) (map[string]string, error) {
 	}
 
 	return output, nil
+}
+
+// UpdateMetadata updates a metadata.
+func (c Connection) UpdateMetadata(ctx context.Context, name string, value string) error {
+	return c.sqlc.UpdateMetadata(ctx, sqlc.UpdateMetadataParams{
+		Value: value,
+		Name:  name,
+	})
 }

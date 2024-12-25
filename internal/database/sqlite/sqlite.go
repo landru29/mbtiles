@@ -26,7 +26,7 @@ type Connection struct {
 	db         *sql.DB
 	sqlc       *sqlc.Queries
 	filename   string
-	tileFormat string
+	tileFormat model.Format
 }
 
 func createDBfile(databaseName string) error {

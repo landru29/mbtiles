@@ -37,7 +37,6 @@ func tileCommand() *cobra.Command {
 
 	output.AddCommand(
 		tileGetCommand(),
-		tileRewriteCommand(),
 	)
 
 	return output
@@ -114,18 +113,6 @@ func tileGetCommand() *cobra.Command {
 	output.Flags().Int64VarP(&row, "row", "r", -1, "tile row in database")
 	output.Flags().Int64VarP(&zoom, "zoom", "z", -1, "tile zoom in database")
 	output.Flags().StringVarP(&outputFile, "output", "o", "", "out filename")
-
-	return output
-}
-
-func tileRewriteCommand() *cobra.Command {
-	output := &cobra.Command{
-		Use:   "rewrite",
-		Short: "rewrite tile (PNG) to MbTiles",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return appli(cmd.Context()).TileRewrite(cmd.Context())
-		},
-	}
 
 	return output
 }

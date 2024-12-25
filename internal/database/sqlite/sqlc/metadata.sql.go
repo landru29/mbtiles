@@ -50,6 +50,20 @@ func (q *Queries) Metadata(ctx context.Context) ([]Metadatum, error) {
 	return items, nil
 }
 
+const updateMetadata = `-- name: UpdateMetadata :exec
+UPDATE metadata SET value=? WHERE name=?
+`
+
+type UpdateMetadataParams struct {
+	Value string
+	Name  string
+}
+
+func (q *Queries) UpdateMetadata(ctx context.Context, arg UpdateMetadataParams) error {
+	_, err := q.db.ExecContext(ctx, updateMetadata, arg.Value, arg.Name)
+	return err
+}
+
 const wipeAllMetadata = `-- name: WipeAllMetadata :exec
 DELETE FROM metadata
 `

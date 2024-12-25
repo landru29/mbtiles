@@ -129,13 +129,3 @@ func (a Application) TileByCoordinates(
 
 	return tile, nil
 }
-
-// TileRewrite revrites the tile to PNG format.
-func (a Application) TileRewrite(ctx context.Context) error {
-	allTiles, err := a.database.AllTiles(ctx)
-	if err != nil {
-		return err
-	}
-
-	return a.database.TileToPNG(ctx, a.display, allTiles)
-}

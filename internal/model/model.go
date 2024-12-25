@@ -9,11 +9,13 @@ import (
 
 // Tile represents one tile.
 type Tile struct {
-	ZoomLevel uint64
-	Row       uint64
-	Col       uint64
-	Image     image.Image
-	Type      string
+	ZoomLevel      uint64
+	Row            uint64
+	Col            uint64
+	Image          image.Image
+	RawImage       []byte
+	OriginalFormat Format
+	Type           Format
 }
 
 // TilesDescription is the set of tiles description.

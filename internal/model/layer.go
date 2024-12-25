@@ -71,12 +71,12 @@ func (l Layer) RowMax() uint64 {
 
 // ColMin is the tile minimum column.
 func (l Layer) ColMin() uint64 {
-	return Min(l.YTile(l.LngMin), l.YTile(l.LngMax))
+	return Min(l.XTile(l.LngMin), l.XTile(l.LngMax))
 }
 
 // ColMax is the tile maximum column.
 func (l Layer) ColMax() uint64 {
-	return Max(l.YTile(l.LngMin), l.YTile(l.LngMax))
+	return Max(l.XTile(l.LngMin), l.XTile(l.LngMax))
 }
 
 // XTile convert longitude to tile column.
@@ -99,6 +99,6 @@ func (l Layer) YTile(lat Coordinate) uint64 {
 
 // LatLngToTile converts lat-lng coordinates to tile.
 // Returns col, row.
-func (l Layer) LatLngToTile(lat Coordinate, lng Coordinate) (uint64, uint64) {
-	return l.XTile(lng), l.YTile(lat)
+func (l Layer) LatLngToTile(coord LatLng) (uint64, uint64) {
+	return l.XTile(coord.Lng), l.YTile(coord.Lat)
 }

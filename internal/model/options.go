@@ -6,5 +6,7 @@ type Option struct {
 	CoordinateMax LatLng
 	ZoomMin       uint64
 	ZoomMax       uint64
-	Format        string
+	Format        Format
+	Name          string
+	Description   string
 }

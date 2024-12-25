@@ -3,11 +3,9 @@ package sqlite
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"image"
 	"image/jpeg"
 	"image/png"
-	"io"
 	"strings"
 
 	"github.com/landru29/mbtiles/internal/database/sqlite/sqlc"
@@ -39,7 +37,7 @@ func (c Connection) Tile(ctx context.Context, index uint64) (*model.Tile, error)
 
 	return &model.Tile{
 		Image:     out,
-		Type:      format,
+		Type:      model.Format(format),
 		ZoomLevel: tile.ZoomLevel,
 		Row:       tile.TileRow,
 		Col:       tile.TileColumn,
@@ -64,7 +62,7 @@ func (c Connection) TileByCoordinate(ctx context.Context, request model.TileRequ
 
 	return &model.Tile{
 		Image:     out,
-		Type:      format,
+		Type:      model.Format(format),
 		ZoomLevel: tile.ZoomLevel,
 		Row:       tile.TileRow,
 		Col:       tile.TileColumn,
@@ -91,35 +89,11 @@ func (c Connection) AllTiles(ctx context.Context) ([]model.Tile, error) {
 			Row:       element.TileRow,
 			Col:       element.TileColumn,
 			Image:     out,
-			Type:      format,
+			Type:      model.Format(format),
 		}
 	}
 
 	return output, err
-}
-
-// TileToPNG rewrites a tile in PNG format.
-func (c Connection) TileToPNG(ctx context.Context, display io.Writer, tiles []model.Tile) error {
-	for idx, tile := range tiles {
-		var buffer bytes.Buffer
-
-		if err := png.Encode(&buffer, tile.Image); err != nil {
-			return pkgerrors.WithMessage(err, "cannot encode image")
-		}
-
-		_, _ = fmt.Fprintf(display, "#%d Zoom: %d - Row: %d - Col: %d\n", idx, tile.ZoomLevel, tile.Row, tile.Col)
-
-		if err := c.sqlc.TileDataUpdate(ctx, sqlc.TileDataUpdateParams{
-			TileData:  buffer.Bytes(),
-			Col:       tile.Col,
-			Row:       tile.Row,
-			ZoomLevel: tile.ZoomLevel,
-		}); err != nil {
-			return pkgerrors.WithMessage(err, "cannot update tile data")
-		}
-	}
-
-	return nil
 }
 
 // InsertTile adds a new tile.
@@ -135,13 +109,17 @@ func (c Connection) InsertTile(ctx context.Context, tile model.Tile) error {
 
 	var imageBuf bytes.Buffer
 
-	switch strings.ToLower(c.tileFormat) {
-	case "png":
+	switch strings.ToLower(c.tileFormat.String()) {
+	case model.FormatPNG.String():
 		if err := png.Encode(&imageBuf, tile.Image); err != nil {
 			return err
 		}
-	case "jpg":
-		if err := jpeg.Encode(&imageBuf, tile.Image, &jpeg.Options{Quality: 10}); err != nil {
+	case model.FormatJPEG.String():
+		if err := jpeg.Encode(&imageBuf, tile.Image, &jpeg.Options{Quality: 100}); err != nil {
+			return err
+		}
+	default:
+		if _, err := imageBuf.Write(tile.RawImage); err != nil {
 			return err
 		}
 	}

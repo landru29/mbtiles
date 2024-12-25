@@ -13,11 +13,14 @@
             "args": [
                 "generate",
                 "-d", "${workspaceFolder}/oaci_250.mbtiles",
-                "--min", "51°17'27.856N,05°30'37.638W",
-                "--max", "41°49'35.519N,09°01'00.727E",
+                "--min", "50°57'00N,05°12'00W",
+                "--max", "40°50'00N,10°00'00E",
                 "--min-zoom", "6",
-                "--max-zoom", "10",
-                "--format", "jpg"
+                "--max-zoom", "11",
+                "--format", "jpg",
+                "--name", "SIA_250",
+                "--description", "Unofficial SIA",
+                "--workers", "10",
             ]
         },
         {
@@ -28,8 +31,8 @@
             "program": "${workspaceFolder}/cmd",
             "args": [
                 "metadata",
-                "-d", "${workspaceFolder}/SIA_france_02_2024.mbtiles"
-                //"-d", "${workspaceFolder}/oaci_250.mbtiles"
+                //"-d", "${workspaceFolder}/SIA_france_02_2024.mbtiles"
+                "-d", "${workspaceFolder}/oaci_250.mbtiles"
             ]
         },
         {

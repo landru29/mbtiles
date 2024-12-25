@@ -48,12 +48,4 @@ func TestCoordinate(t *testing.T) {
 
 		assert.Equal(t, "35°", coordinate.String())
 	})
-
-	t.Run("fds", func(t *testing.T) {
-		var coordinate model.Coordinate
-
-		require.NoError(t, coordinate.Set("-5.510455"))
-
-		assert.Equal(t, "35°", coordinate.String())
-	})
 }
