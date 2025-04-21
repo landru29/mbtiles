@@ -64,7 +64,7 @@ func (c Client) LoadImage(ctx context.Context, request model.TileRequest) (image
 	row := request.Row
 
 	values := url.Values{}
-	values.Add("apikey", "geoportail")
+	values.Add("apikey", "ign_scan_ws")
 	values.Add("layer", "GEOGRAPHICALGRIDSYSTEMS.MAPS.SCAN-OACI")
 	values.Add("style", "normal")
 	values.Add("tilematrixset", "PM")
